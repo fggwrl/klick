@@ -287,15 +287,16 @@
         function playVideo(score) {
             let videoId = null;
             
-            if (score >= 15) {
+            // Exakte Punktzahl prüfen
+            if (score === 15) {
                 videoId = videoIds[15];
-            } else if (score >= 10) {
+            } else if (score === 10) {
                 videoId = videoIds[10];
-            } else if (score >= 5) {
+            } else if (score === 5) {
                 videoId = videoIds[5];
             }
             
-            if (videoId && videoId !== currentVideoId) {
+            if (videoId) {
                 // Spiel pausieren
                 pauseGame();
                 
@@ -449,20 +450,23 @@
             // Schlange bewegen
             snake.unshift(head);
             
-            // Essen überprüfen
+        // Essen überprüfen
             if (head.x === food.x && head.y === food.y) {
                 createFood();
-                updateScore(score + 1);
+                const newScore = score + 1;
+                updateScore(newScore);
                 
                 // Geschwindigkeit erhöhen
-                if (score % 5 === 0) {
+                if (newScore % 5 === 0) {
                     gameSpeed = Math.max(50, gameSpeed - 10);
                     clearInterval(gameLoop);
                     gameLoop = setInterval(gameStep, gameSpeed);
                 }
                 
-                // Video abspielen basierend auf Punktzahl
-                playVideo(score);
+                // Video abspielen bei exakt 5, 10 oder 15 Punkten
+                if (newScore === 5 || newScore === 10 || newScore === 15) {
+                    playVideo(newScore);
+                }
             } else {
                 snake.pop();
             }
