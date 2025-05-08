@@ -225,6 +225,10 @@
     
     <div id="video-container">
         <div id="video-player"></div>
+        <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px;">
+            <button id="resume-game-btn" style="background-color: #4caf50; color: white; border: none; border-radius: 5px; padding: 10px 20px; font-size: 16px; cursor: pointer;">Spiel fortsetzen</button>
+            <button id="unmute-btn" style="background-color: #ff6b6b; color: white; border: none; border-radius: 5px; padding: 10px 20px; font-size: 16px; cursor: pointer;">Ton einschalten</button>
+        </div>
         <button id="close-video-btn" style="position: absolute; top: 20px; right: 20px; background-color: #ff6b6b; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer; z-index: 1001;">✕</button>
     </div>
 
@@ -258,7 +262,7 @@
                     'loop': 1,
                     'fs': 1,
                     'playsinline': 1,
-                    'mute': 0
+                    'mute': 1  // Stumm für Autoplay
                 },
                 events: {
                     'onReady': onPlayerReady,
@@ -270,6 +274,7 @@
         function onPlayerReady(event) {
             // Player ist bereit und kann jetzt Befehle empfangen
             event.target.setVolume(100);
+            // Video ist standardmäßig stummgeschaltet für Autoplay
         }
 
         function onPlayerStateChange(event) {
@@ -291,6 +296,9 @@
             }
             
             if (videoId && videoId !== currentVideoId) {
+                // Spiel pausieren
+                pauseGame();
+                
                 currentVideoId = videoId;
                 document.getElementById('video-container').style.display = 'flex';
                 
@@ -323,6 +331,21 @@
                 player.stopVideo();
             }
             currentVideoId = null;
+        }
+        
+        // Spiel pausieren
+        function pauseGame() {
+            if (gameLoop) {
+                clearInterval(gameLoop);
+                gameLoop = null;
+            }
+        }
+        
+        // Spiel fortsetzen
+        function resumeGame() {
+            if (!gameLoop && gameActive) {
+                gameLoop = setInterval(gameStep, gameSpeed);
+            }
         }
 
         // Snake Game Logic
@@ -580,6 +603,32 @@
         // Schließen-Button für Video
         document.getElementById('close-video-btn').addEventListener('click', () => {
             hideVideo();
+            resumeGame();
+        });
+        
+        // Resume-Button
+        document.getElementById('resume-game-btn').addEventListener('click', () => {
+            hideVideo();
+            resumeGame();
+        });
+        
+        // Unmute-Button
+        document.getElementById('unmute-btn').addEventListener('click', () => {
+            if (player && typeof player.unMute === 'function') {
+                player.unMute();
+                player.setVolume(100);
+                document.getElementById('unmute-btn').textContent = 'Ton aus';
+                document.getElementById('unmute-btn').onclick = function() {
+                    player.mute();
+                    this.textContent = 'Ton einschalten';
+                    this.onclick = function() {
+                        player.unMute();
+                        player.setVolume(100);
+                        this.textContent = 'Ton aus';
+                        this.onclick = arguments.callee;
+                    };
+                };
+            }
         });
 
         // Canvas an die Bildschirmgröße anpassen
