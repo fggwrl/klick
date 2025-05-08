@@ -225,6 +225,7 @@
     
     <div id="video-container">
         <div id="video-player"></div>
+        <button id="close-video-btn" style="position: absolute; top: 20px; right: 20px; background-color: #ff6b6b; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer; z-index: 1001;">✕</button>
     </div>
 
     <script>
@@ -251,11 +252,13 @@
                 width: '100%',
                 playerVars: {
                     'autoplay': 1,
-                    'controls': 0,
+                    'controls': 1,
                     'showinfo': 0,
                     'rel': 0,
                     'loop': 1,
-                    'playlist': ''
+                    'fs': 1,
+                    'playsinline': 1,
+                    'mute': 0
                 },
                 events: {
                     'onReady': onPlayerReady,
@@ -265,11 +268,12 @@
         }
 
         function onPlayerReady(event) {
-            // Player ist bereit
+            // Player ist bereit und kann jetzt Befehle empfangen
+            event.target.setVolume(100);
         }
 
         function onPlayerStateChange(event) {
-            // Wenn das Video endet, starte es neu (falls loop nicht funktioniert)
+            // Wenn das Video endet, starte es neu
             if (event.data === YT.PlayerState.ENDED) {
                 player.playVideo();
             }
@@ -289,12 +293,27 @@
             if (videoId && videoId !== currentVideoId) {
                 currentVideoId = videoId;
                 document.getElementById('video-container').style.display = 'flex';
-                player.loadVideoById({
-                    videoId: videoId,
-                    suggestedQuality: 'large'
-                });
-                player.setLoop(true);
-                player.playVideo();
+                
+                // Sicherstellen, dass der Player existiert
+                if (player && typeof player.loadVideoById === 'function') {
+                    player.loadVideoById({
+                        videoId: videoId,
+                        suggestedQuality: 'large'
+                    });
+                    
+                    // Stelle sicher, dass das Video als Playlist läuft (für Loop)
+                    player.cuePlaylist({
+                        playlist: [videoId],
+                        listType: 'playlist',
+                        index: 0,
+                        suggestedQuality: 'large'
+                    });
+                    
+                    player.playVideo();
+                } else {
+                    // Fallback, falls der Player noch nicht initialisiert ist
+                    setTimeout(() => playVideo(score), 1000);
+                }
             }
         }
 
@@ -322,8 +341,8 @@
         const downBtn = document.getElementById('down-btn');
 
         const gridSize = 20;
-        const gridWidth = canvas.width / gridSize;
-        const gridHeight = canvas.height / gridSize;
+        let gridWidth = Math.floor(canvas.width / gridSize);
+        let gridHeight = Math.floor(canvas.height / gridSize);
         
         let snake = [];
         let food = {};
@@ -557,6 +576,11 @@
         restartBtn.addEventListener('click', () => {
             initGame();
         });
+        
+        // Schließen-Button für Video
+        document.getElementById('close-video-btn').addEventListener('click', () => {
+            hideVideo();
+        });
 
         // Canvas an die Bildschirmgröße anpassen
         function resizeCanvas() {
@@ -566,10 +590,22 @@
             canvas.width = maxSize;
             canvas.height = maxSize;
             
-            // Raster-Größe neu berechnen
-            const gridSize = 20;
-            const gridWidth = canvas.width / gridSize;
-            const gridHeight = canvas.height / gridSize;
+            // Globale Raster-Größe neu berechnen
+            gridWidth = Math.floor(canvas.width / gridSize);
+            gridHeight = Math.floor(canvas.height / gridSize);
+            
+            if (gameActive) {
+                // Schlange und Essen bei Größenänderung anpassen
+                snake = snake.map(segment => {
+                    return {
+                        x: Math.min(segment.x, gridWidth - 1),
+                        y: Math.min(segment.y, gridHeight - 1)
+                    };
+                });
+                
+                food.x = Math.min(food.x, gridWidth - 1);
+                food.y = Math.min(food.y, gridHeight - 1);
+            }
             
             drawGame();
         }
